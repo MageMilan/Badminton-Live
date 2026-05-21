@@ -1,18 +1,22 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = 'https://your-supabase-url.supabase.co'
-const supabaseAnonKey = 'your-anon-public-key'
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://ftnpksgbyqtkuhkminkw.supabase.co'
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0bnBrc2dieXF0a3Voa21pbmt3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzNjQ3NjQsImV4cCI6MjA5NDk0MDc2NH0.icAyDcDbFU9HCg9DSSwRPuPlSknGcUnQERjfCKmngC4'
 
-const useSupabase = supabaseUrl !== 'https://your-supabase-url.supabase.co' && supabaseAnonKey !== 'your-anon-public-key'
+const useSupabase = supabaseUrl !== 'https://ftnpksgbyqtkuhkminkw.supabase.co' && supabaseAnonKey !== 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0bnBrc2dieXF0a3Voa21pbmt3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzNjQ3NjQsImV4cCI6MjA5NDk0MDc2NH0.icAyDcDbFU9HCg9DSSwRPuPlSknGcUnQERjfCKmngC4'
 const supabase = useSupabase ? createClient(supabaseUrl, supabaseAnonKey) : null
 
 const tournamentName = ref('')
 const matches = ref([])
 const rankings = ref([])
+const isCompleted = ref(false)
+const lastUpdated = ref(0)
 
 const statusMap = ['未开始', '进行中', '已结束']
+
+let subscription = null
 
 onMounted(async () => {
   if (useSupabase) {
@@ -23,44 +27,90 @@ onMounted(async () => {
   }
 })
 
+onUnmounted(() => {
+  if (subscription) {
+    supabase.removeChannel(subscription)
+  }
+})
+
 async function loadFromJson() {
-  const res = await fetch('/sample_live_share.json')
+  const res = await fetch(`${import.meta.env.BASE_URL}sample_live_share.json`)
   const sampleData = await res.json()
   tournamentName.value = sampleData.tournamentName
+  isCompleted.value = sampleData.isCompleted
+  lastUpdated.value = sampleData.lastUpdated
   matches.value = sampleData.matches.sort((a, b) => a.displayOrder - b.displayOrder)
   rankings.value = sampleData.rankings
 }
 
 async function loadFromSupabase() {
-  const { data: matchData } = await supabase
-    .from('matches')
-    .select('*')
-    .order('display_order', { ascending: true })
-  if (matchData) matches.value = matchData
+  try {
+    const { data: tournamentData } = await supabase
+      .from('tournaments')
+      .select('name, is_completed, last_updated')
+      .single()
 
-  const { data: rankingData } = await supabase
-    .from('rankings')
-    .select('*')
-    .order('net_score', { ascending: false })
-  if (rankingData) rankings.value = rankingData
+    if (tournamentData) {
+      tournamentName.value = tournamentData.name
+      isCompleted.value = tournamentData.is_completed
+      lastUpdated.value = tournamentData.last_updated
+    }
 
-  const { data: tournamentData } = await supabase
-    .from('tournaments')
-    .select('name')
-    .single()
-  if (tournamentData) tournamentName.value = tournamentData.name
+    const { data: matchData } = await supabase
+      .from('matches')
+      .select('*')
+      .order('display_order', { ascending: true })
+
+    if (matchData) {
+      matches.value = matchData.map(m => ({
+        displayOrder: m.display_order,
+        playerA1Name: m.player_a1_name,
+        playerA2Name: m.player_a2_name,
+        playerB1Name: m.player_b1_name,
+        playerB2Name: m.player_b2_name,
+        scoreA: m.score_a,
+        scoreB: m.score_b,
+        status: m.status
+      }))
+    }
+
+    const { data: rankingData } = await supabase
+      .from('rankings')
+      .select('*')
+      .order('net_score', { ascending: false })
+
+    if (rankingData) {
+      rankings.value = rankingData.map(r => ({
+        playerId: r.player_id,
+        playerName: r.player_name,
+        matchesPlayed: r.matches_played,
+        wins: r.wins,
+        totalScore: r.total_score,
+        totalLost: r.total_lost,
+        netScore: r.net_score
+      }))
+    }
+  } catch (error) {
+    console.error('Error loading from Supabase:', error)
+  }
 }
 
 function subscribeToUpdates() {
-  supabase
-    .channel('all-matches')
+  subscription = supabase
+    .channel('live-updates')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, () => loadFromSupabase())
     .on('postgres_changes', { event: '*', schema: 'public', table: 'rankings' }, () => loadFromSupabase())
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'tournaments' }, () => loadFromSupabase())
     .subscribe()
 }
 
 function getStatusText(status) {
   return statusMap[status] || '未知'
+}
+
+function formatTime(timestamp) {
+  if (!timestamp) return ''
+  return new Date(timestamp).toLocaleString('zh-CN')
 }
 </script>
 
