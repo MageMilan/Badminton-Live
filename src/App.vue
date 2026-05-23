@@ -169,12 +169,12 @@ function formatTime(timestamp) {
         >
           <span class="rank">{{ idx + 1 }}</span>
           <span class="name">{{ player.playerName ?? player.player_name }}</span>
-          <span class="stat">{{ player.matchesPlayed ?? player.matches_played }}</span>
-          <span class="stat">{{ player.wins }}</span>
-          <span class="stat">{{ player.totalScore ?? player.total_score }}</span>
-          <span class="stat">{{ player.totalLost ?? player.total_lost }}</span>
-          <span class="stat" :class="(player.netScore ?? player.net_score) >= 0 ? 'positive' : 'negative'">
-            {{ (player.netScore ?? player.net_score) >= 0 ? '+' : '' }}{{ player.netScore ?? player.net_score }}
+          <span class="stat">{{ player.matchesPlayed ?? player.matches_played ?? 0 }}</span>
+          <span class="stat">{{ player.wins ?? 0 }}</span>
+          <span class="stat">{{ player.totalScore ?? player.total_score ?? 0 }}</span>
+          <span class="stat">{{ player.totalLost ?? player.total_lost ?? 0 }}</span>
+          <span class="stat" :class="(player.netScore ?? player.net_score ?? 0) >= 0 ? 'positive' : 'negative'">
+            {{ (player.netScore ?? player.net_score ?? 0) >= 0 ? '+' : '' }}{{ player.netScore ?? player.net_score ?? 0 }}
           </span>
         </div>
       </div>
