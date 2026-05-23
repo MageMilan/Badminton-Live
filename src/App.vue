@@ -13,13 +13,17 @@ const matches = ref([])
 const rankings = ref([])
 const isCompleted = ref(false)
 const lastUpdated = ref(0)
+const shareId = ref(null)
 
 const statusMap = ['未开始', '进行中', '已结束']
 
 let subscription = null
 
 onMounted(async () => {
-  if (useSupabase) {
+  const urlParams = new URLSearchParams(window.location.search)
+  shareId.value = urlParams.get('id')
+
+  if (useSupabase && shareId.value) {
     await loadFromSupabase()
     subscribeToUpdates()
   } else {
@@ -45,50 +49,24 @@ async function loadFromJson() {
 
 async function loadFromSupabase() {
   try {
-    const { data: tournamentData } = await supabase
-      .from('tournaments')
-      .select('name, is_completed, last_updated')
+    const { data, error } = await supabase
+      .from('live_tournaments')
+      .select('payload')
+      .eq('id', shareId.value)
       .single()
 
-    if (tournamentData) {
-      tournamentName.value = tournamentData.name
-      isCompleted.value = tournamentData.is_completed
-      lastUpdated.value = tournamentData.last_updated
+    if (error) {
+      console.error('Error loading from Supabase:', error)
+      return
     }
 
-    const { data: matchData } = await supabase
-      .from('matches')
-      .select('*')
-      .order('display_order', { ascending: true })
-
-    if (matchData) {
-      matches.value = matchData.map(m => ({
-        displayOrder: m.display_order,
-        playerA1Name: m.player_a1_name,
-        playerA2Name: m.player_a2_name,
-        playerB1Name: m.player_b1_name,
-        playerB2Name: m.player_b2_name,
-        scoreA: m.score_a,
-        scoreB: m.score_b,
-        status: m.status
-      }))
-    }
-
-    const { data: rankingData } = await supabase
-      .from('rankings')
-      .select('*')
-      .order('net_score', { ascending: false })
-
-    if (rankingData) {
-      rankings.value = rankingData.map(r => ({
-        playerId: r.player_id,
-        playerName: r.player_name,
-        matchesPlayed: r.matches_played,
-        wins: r.wins,
-        totalScore: r.total_score,
-        totalLost: r.total_lost,
-        netScore: r.net_score
-      }))
+    if (data && data.payload) {
+      const payload = data.payload
+      tournamentName.value = payload.tournamentName
+      isCompleted.value = payload.isCompleted
+      lastUpdated.value = payload.lastUpdated
+      matches.value = payload.matches.sort((a, b) => a.displayOrder - b.displayOrder)
+      rankings.value = payload.rankings
     }
   } catch (error) {
     console.error('Error loading from Supabase:', error)
@@ -98,9 +76,20 @@ async function loadFromSupabase() {
 function subscribeToUpdates() {
   subscription = supabase
     .channel('live-updates')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, () => loadFromSupabase())
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'rankings' }, () => loadFromSupabase())
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'tournaments' }, () => loadFromSupabase())
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'live_tournaments', filter: `id=eq.${shareId.value}` },
+      (payload) => {
+        if (payload.new && payload.new.payload) {
+          const data = payload.new.payload
+          tournamentName.value = data.tournamentName
+          isCompleted.value = data.isCompleted
+          lastUpdated.value = data.lastUpdated
+          matches.value = data.matches.sort((a, b) => a.displayOrder - b.displayOrder)
+          rankings.value = data.rankings
+        }
+      }
+    )
     .subscribe()
 }
 
