@@ -58,7 +58,7 @@ Android 客户端在 `MatchViewModel` 中使用 `combine` 算子监听本地数�
 1.  **生成 UUID**: 调用 `UUID.randomUUID().toString()` 生成一个 128 位的随机字符串作为 `shareId`。
 2.  **持久化**: 该 ID 会存储在本地 `tournaments` 表的 `shareId` 字段中。
 3.  **构造链接**: 将 `shareId` 拼接到预设的 GitHub Pages Web 应用地址中。
-    - **格式**: `https://<your-username>.github.io/badminton-live/#/?id=<shareId>`
+    - **格式**: `https://<your-username>.github.io/Badminton-Live/#/?id=<shareId>`
     - **安全性**: 链接不包含任何用户账号信息，仅包含该赛事的随机 UUID。
 
 ---

@@ -294,23 +294,24 @@ h2 {
 .rankings-table {
   background: rgba(255, 255, 255, 0.05);
   border-radius: 12px;
-  overflow: hidden;
+  overflow-x: auto;
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .ranking-header,
 .ranking-row {
   display: grid;
-  grid-template-columns: 60px 1fr repeat(5, 80px);
-  padding: 1rem 1.5rem;
+  grid-template-columns: 40px 80px repeat(5, 50px);
+  padding: 0.6rem 0.8rem;
   align-items: center;
   text-align: center;
+  min-width: 430px;
 }
 
 .ranking-header {
   background: rgba(255, 255, 255, 0.08);
-  font-size: 0.8rem;
-  letter-spacing: 0.1em;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
   color: #888;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -318,6 +319,7 @@ h2 {
 .ranking-row {
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   transition: background 0.3s ease;
+  font-size: 0.85rem;
 }
 
 .ranking-row:hover {
@@ -330,16 +332,21 @@ h2 {
 
 .rank {
   font-weight: 900;
-  font-size: 1.2rem;
+  font-size: 1rem;
 }
 
 .name {
   text-align: left;
   font-weight: 700;
+  font-size: 0.8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .stat {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
 .positive { color: #00ff88; }
