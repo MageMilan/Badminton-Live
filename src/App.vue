@@ -336,7 +336,7 @@ h2 {
 }
 
 .name {
-  text-align: left;
+  text-align: center;
   font-weight: 700;
   font-size: 0.8rem;
   overflow: hidden;
