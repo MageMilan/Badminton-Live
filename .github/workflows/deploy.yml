@@ -20,12 +20,11 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
-          cache-dependency-path: badminton-live/package-lock.json
-      - run: cd badminton-live && npm ci
-      - run: cd badminton-live && npm run build
+      - run: npm ci
+      - run: npm run build
 
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: badminton-live/dist # Vite 打包生成的文件夹名称
+          folder: dist # Vite 打包生成的文件夹名称
           branch: gh-pages # 部署到 gh-pages 分支
