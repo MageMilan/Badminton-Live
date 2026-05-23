@@ -60,14 +60,21 @@ async function loadFromSupabase() {
       return
     }
 
-    if (data && data.payload) {
-      const payload = data.payload
-      tournamentName.value = payload.tournamentName
-      isCompleted.value = payload.isCompleted
-      lastUpdated.value = payload.lastUpdated
-      matches.value = payload.matches.sort((a, b) => a.displayOrder - b.displayOrder)
-      rankings.value = payload.rankings
-    }
+  if (data && data.payload) {
+    const payload = data.payload
+    tournamentName.value = payload.tournamentName
+    isCompleted.value = payload.isCompleted
+    lastUpdated.value = payload.lastUpdated
+    matches.value = payload.matches.sort((a, b) => a.displayOrder - b.displayOrder)
+    rankings.value = payload.rankings
+  } else if (data) {
+    // 兼容数据直接在顶层的情况
+    tournamentName.value = data.tournamentName
+    isCompleted.value = data.isCompleted
+    lastUpdated.value = data.lastUpdated
+    matches.value = (data.matches || data.payload?.matches || []).sort((a, b) => (a.displayOrder || a.display_order) - (b.displayOrder || b.display_order))
+    rankings.value = data.rankings || data.payload?.rankings || []
+  }
   } catch (error) {
     console.error('Error loading from Supabase:', error)
   }
