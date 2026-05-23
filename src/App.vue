@@ -167,7 +167,7 @@ function formatTime(timestamp) {
           :key="player.playerId ?? player.player_id"
           class="ranking-row"
         >
-          <span class="rank">{{ idx + 1 }}</span>
+          <span class="rank">{{ player.displayRank ?? player.display_rank ?? idx + 1 }}</span>
           <span class="name">{{ player.playerName ?? player.player_name }}</span>
           <span class="stat">{{ player.matchesPlayed ?? player.matches_played ?? 0 }}</span>
           <span class="stat">{{ player.wins ?? 0 }}</span>
