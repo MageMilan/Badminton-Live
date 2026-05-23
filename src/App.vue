@@ -5,8 +5,7 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://ftnpksgbyqtkuhkminkw.supabase.co'
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0bnBrc2dieXF0a3Voa21pbmt3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzNjQ3NjQsImV4cCI6MjA5NDk0MDc2NH0.icAyDcDbFU9HCg9DSSwRPuPlSknGcUnQERjfCKmngC4'
 
-const useSupabase = supabaseUrl !== 'https://ftnpksgbyqtkuhkminkw.supabase.co' && supabaseAnonKey !== 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0bnBrc2dieXF0a3Voa21pbmt3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzNjQ3NjQsImV4cCI6MjA5NDk0MDc2NH0.icAyDcDbFU9HCg9DSSwRPuPlSknGcUnQERjfCKmngC4'
-const supabase = useSupabase ? createClient(supabaseUrl, supabaseAnonKey) : null
+const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 const tournamentName = ref('')
 const matches = ref([])
@@ -20,19 +19,24 @@ const statusMap = ['未开始', '进行中', '已结束']
 let subscription = null
 
 onMounted(async () => {
-  const urlParams = new URLSearchParams(window.location.search)
+  const hash = window.location.hash
+  const search = window.location.search
+  const paramsString = hash.includes('?') ? hash.split('?')[1] : search
+  const urlParams = new URLSearchParams(paramsString)
   shareId.value = urlParams.get('id')
 
-  if (useSupabase && shareId.value) {
+  if (shareId.value) {
     await loadFromSupabase()
-    subscribeToUpdates()
+    if (supabase) {
+      subscribeToUpdates()
+    }
   } else {
     await loadFromJson()
   }
 })
 
 onUnmounted(() => {
-  if (subscription) {
+  if (subscription && supabase) {
     supabase.removeChannel(subscription)
   }
 })
@@ -57,6 +61,7 @@ async function loadFromSupabase() {
 
     if (error) {
       console.error('Error loading from Supabase:', error)
+      await loadFromJson()
       return
     }
 
@@ -74,9 +79,12 @@ async function loadFromSupabase() {
     lastUpdated.value = data.lastUpdated
     matches.value = (data.matches || data.payload?.matches || []).sort((a, b) => (a.displayOrder || a.display_order) - (b.displayOrder || b.display_order))
     rankings.value = data.rankings || data.payload?.rankings || []
+  } else {
+    await loadFromJson()
   }
   } catch (error) {
     console.error('Error loading from Supabase:', error)
+    await loadFromJson()
   }
 }
 
